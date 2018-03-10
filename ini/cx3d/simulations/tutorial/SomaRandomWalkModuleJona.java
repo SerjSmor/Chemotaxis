@@ -41,9 +41,13 @@ import ini.cx3d.simulations.tutorial.IntracellularDiffusion.InternalSecretor;
 import ini.cx3d.utilities.Matrix;
 
 public class SomaRandomWalkModuleJona extends AbstractLocalBiologyModule {
-
+	
 	double direction[] = randomNoise(1,3); // initial direction
 	double constDirection[] = {1, 2, 3};
+	static double firstCellInitialPlace[] = {-300, 30, 0};
+	static double secondCellInitialPlace[] = {300, 30, 0};
+	
+	
 	public AbstractLocalBiologyModule getCopy() {
 		return new SomaRandomWalkModuleJona();
 	}
@@ -55,7 +59,7 @@ public class SomaRandomWalkModuleJona extends AbstractLocalBiologyModule {
 //		direction = normalize(direction);
 
 		//		depending on some state - we either move or stop 
-		super.cellElement.move(speed, constDirection);
+//		super.cellElement.move(speed, constDirection);
 		
 	
 	}
@@ -74,7 +78,7 @@ public class SomaRandomWalkModuleJona extends AbstractLocalBiologyModule {
 		
 		
 		//for(int i = 0; i<1; i++){
-			Cell c = CellFactory.getCellInstance(new double[] {50,30,0});
+			Cell c = CellFactory.getCellInstance(firstCellInitialPlace);
 			c.setColorForAllPhysicalObjects(Param.BLUE);
 			c.getSomaElement().addLocalBiologyModule(new InternalSecretor());
 //			for linear walk
@@ -83,15 +87,16 @@ public class SomaRandomWalkModuleJona extends AbstractLocalBiologyModule {
 			//soma1.addLocalBiologyModule(new InternalSecretor());
 			NeuriteElement ne = c.getSomaElement().extendNewNeurite(new double[] {0,1,1});
 			ne.getPhysical().setDiameter(2.0);
-			ne.addLocalBiologyModule(new GrowthCone());
+			ne.addLocalBiologyModule(new GrowthCone(secondCellInitialPlace));
 			
-			Cell c1 = CellFactory.getCellInstance(new double[] {100,30,0});
+			
+			Cell c1 = CellFactory.getCellInstance(secondCellInitialPlace);
 //			c1.getSomaElement().addLocalBiologyModule(new InternalSecretor());
 //			awesome for internal walkt
 			c1.getSomaElement().addLocalBiologyModule(new SomaRandomWalkModuleJona());
 			NeuriteElement ne1 = c1.getSomaElement().extendNewNeurite(new double[] {0,1,1});
 			ne1.getPhysical().setDiameter(2.0);
-			ne1.addLocalBiologyModule(new GrowthCone());
+			ne1.addLocalBiologyModule(new GrowthCone(firstCellInitialPlace));
 			
 			
 			/* defining the templates for the intracellular substance
@@ -139,6 +144,10 @@ public class SomaRandomWalkModuleJona extends AbstractLocalBiologyModule {
 		private static double bifurcationProba = 0.003;
 		// direction at previous time step:
 		private double[] previousDir;
+		private double[] goal;
+		public GrowthCone(double[] goal) {
+			this.goal = goal;
+		}
 		// initial direction is parallel to the cylinder axis
 		// therefore we overwrite this method from the superclass:
 		public void setCellElement(CellElement cellElement){
@@ -146,7 +155,7 @@ public class SomaRandomWalkModuleJona extends AbstractLocalBiologyModule {
 			this.previousDir = cellElement.getPhysical().getAxis();
 		}
 		// to ensure distribution in all terminal segments:
-		public AbstractLocalBiologyModule getCopy() {return new GrowthCone();}
+		public AbstractLocalBiologyModule getCopy() {return new GrowthCone(goal);}
 
 		public boolean isCopiedWhenNeuriteBranches() {return true;}
 		
@@ -158,8 +167,21 @@ public class SomaRandomWalkModuleJona extends AbstractLocalBiologyModule {
 			// getting the concentration and defining the speed
 			PhysicalObject cyl = super.cellElement.getPhysical();
 			// SERJ - just move it
-			double[] myDirection = {1, 2, 3};
-			super.cellElement.move(2, myDirection);
+			// go towards the goal
+//			double[] myDirection = {1, 2, 3};
+			double[] currentLocation = cyl.getMassLocation();
+			double currentLocationX = cyl.getMassLocation()[0];
+			double speed = 4;
+			double nextLocationX = 0;
+			double goalX = goal[0];
+			if (goalX < 0) {
+				nextLocationX = currentLocationX - speed;
+			} else {
+				nextLocationX = currentLocationX + speed;
+			}
+			// not sure why it has to be negative, but it works
+			double[] nextLocation = {-nextLocationX, currentLocation[1], currentLocation[2]};
+			super.cellElement.move(speed, nextLocation);
 			
 			// this is the 
 			// depending on some state we either move or stop
